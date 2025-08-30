@@ -22,7 +22,6 @@ class EventContainer:
 
     def __getattr__(self, name: str) -> Event:
         if name not in self._events:
-            # Create a new custom event dynamically
             self._events[name] = Event(self._window, is_custom=True)
         return self._events[name]
 
@@ -52,14 +51,13 @@ class Event:
         self._event = threading.Event()
         self._window = window
         self.return_values: set[Any] = set()
-        self._is_custom = is_custom  # Flag to identify custom events created by user
+        self._is_custom = is_custom
 
     def set(self, *args: Any, **kwargs: Any) -> bool:
         def execute():
             self.return_values = set()
             for func in self._items:
                 try:
-                    # Determine how to call the function based on its signature
                     if len(inspect.signature(func).parameters.values()) == 0:
                         value = func()
                     elif 'window' in inspect.signature(func).parameters:
@@ -77,18 +75,14 @@ class Event:
             else:
                 t = threading.Thread(target=execute)
                 t.start()
-                # Only wait for custom events to get return values
-                # System events remain non-blocking for performance
+
                 if self._is_custom:
                     t.join()
 
-        # For custom events (created by user): return True by default, False only if any function returns False
-        # For default events: keep original behavior
         if self._is_custom:
             false_values = [v for v in self.return_values if v is False]
-            result = len(false_values) == 0  # True if no False values found
+            result = len(false_values) == 0
         else:
-            # Original behavior for default events
             false_values = [v for v in self.return_values if v is False]
             result = len(false_values) != 0
 
