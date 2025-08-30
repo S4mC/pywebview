@@ -1,7 +1,7 @@
 <template>
   <div class="version-info">
     <p>Current Version: {{ version }}</p>
-    <button @click="goToChangelog" class="vp-hero-action">View Changelog</button>
+    <button @click="goToChangelog" class="vp-hero-action button">View changelog</button>
   </div>
 </template>
 
@@ -15,7 +15,7 @@ export default {
   },
   methods: {
     goToChangelog() {
-      window.location.href = '/CHANGELOG';
+      this.$router.push('/CHANGELOG.html')
     }
   }
 }
@@ -29,15 +29,17 @@ export default {
   color: #6a8bad;
 }
 
-button {
+.button {
   background-color: #42b983;
   color: white;
   border: none;
   padding: 1rem 2rem;
   cursor: pointer;
+  text-decoration: none;
 }
 
-button:hover {
+.button:hover {
   background-color: #358a6b;
+  text-decoration: none !important;
 }
 </style>
