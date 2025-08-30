@@ -152,6 +152,10 @@ class Window:
         self.before_closing_active = False
         self.menu = menu
 
+        # Before_closing variables
+        self.___skip_next_before_closed = False
+        self.before_closing_active = False
+
         # Server config
         self._http_port = http_port
         self._server = server
