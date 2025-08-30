@@ -5,25 +5,25 @@ from .util import run_test
 
 def test_custom_events_add_remove():
     """Test adding and removing custom event listeners"""
-    window = webview.create_window('Custom Events Test', html='<html><body>TEST</body></html>')
+    window = webview.create_window('Custom Events Test', html='<html><body></body></html>')
     run_test(webview, window, custom_events_add_remove)
 
 
 def test_custom_events_multiple_listeners():
     """Test multiple listeners for the same custom event"""
-    window = webview.create_window('Custom Events Test', html='<html><body>TEST</body></html>')
+    window = webview.create_window('Custom Events Test', html='<html><body></body></html>')
     run_test(webview, window, custom_events_multiple_listeners)
 
 
 def test_custom_events_trigger():
     """Test triggering custom events manually"""
-    window = webview.create_window('Custom Events Test', html='<html><body>TEST</body></html>')
+    window = webview.create_window('Custom Events Test', html='<html><body></body></html>')
     run_test(webview, window, custom_events_trigger)
 
 
 def test_custom_events_with_data():
     """Test custom events with data parameters"""
-    window = webview.create_window('Custom Events Test', html='<html><body>TEST</body></html>')
+    window = webview.create_window('Custom Events Test', html='<html><body></body></html>')
     run_test(webview, window, custom_events_with_data)
 
 

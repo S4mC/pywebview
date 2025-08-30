@@ -318,32 +318,41 @@ def js_bridge_call(window: Window, func_name: str, param: Any, value_id: str) ->
         def _dispatch_call():
             try:
                 event_name = param[0] if len(param) > 0 else None
-                
+
                 if event_name:
-                    # Pass all arguments except the first one (event_name) to the event handler
                     event_args = param[1:] if len(param) > 1 else []
+
+                    result = False
+                    if hasattr(window, 'events'):
+                        try:
+                            custom_event = getattr(window.events, event_name)
+                            result = custom_event(*event_args)
+                        except AttributeError:
+                            logger.warning(f'Event {event_name} not found in window.events')
+                            result = False
+                        except Exception as e:
+                            logger.exception(f'Error dispatching Python event {event_name}: {e}')
+                            result = False
+                    else:
+                        logger.error('Window has no events attribute')
+                        result = False
                     
-                    # Use the new _dispatch_python_event method
-                    result = window._dispatch_python_event(event_name, *event_args)
-                    
-                    # Return success response
                     result_json = json.dumps(result).replace('\\', '\\\\').replace("'", "\\'")
                     retval = f"{{value: \'{result_json}\'}}"
                 else:
-                    logger.error('Invalid event name provided to _dispatch_custom_event')
+                    logger.error('Event %s does not exist', event_name)
                     error = {'message': 'Invalid event name', 'name': 'ValueError', 'stack': ''}
                     result = json.dumps(error).replace('\\', '\\\\').replace("'", "\\'")
                     retval = f"{{isError: true, value: \'{result}\'}}"
-                    
+
             except Exception as e:
                 logger.error(f'Error dispatching custom event {event_name}: {e}')
                 error = {'message': str(e), 'name': type(e).__name__, 'stack': traceback.format_exc()}
                 result = json.dumps(error).replace('\\', '\\\\').replace("'", "\\'")
                 retval = f"{{isError: true, value: \'{result}\'}}"
-                
+
             window.evaluate_js(f'window.pywebview._returnValuesCallbacks["_dispatch_custom_event"]["{value_id}"]({retval})')
-        
-        # Execute in a separate thread like other API calls
+
         thread = Thread(target=_dispatch_call)
         thread.start()
         return
