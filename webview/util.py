@@ -471,19 +471,8 @@ def sort_js_files(js_files: list[str]) -> list[str]:
 
 def escape_string(string: str) -> str:
     return (
-        string.replace('\\', '\\\\').replace('"', r"\"").replace('\n', r'\n').replace('\r', r'\r')
+        string.replace('\\', '\\\\').replace('"', r"\"").replace('\n', r'\n').replace('\r', r'\r').replace('\'', r'\'')
     )
-
-
-def escape_quotes(string: str) -> str:
-    if isinstance(string, str):
-        return string.replace('"', r"\"").replace("'", r"\'")
-    else:
-        return string
-
-
-def escape_line_breaks(string: str) -> str:
-    return string.replace('\\n', '\\\\n').replace('\\r', '\\\\r')
 
 
 def inject_base_uri(content: str, base_uri: str) -> str:

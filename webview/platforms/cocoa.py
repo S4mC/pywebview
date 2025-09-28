@@ -32,9 +32,6 @@ info = bundle.localizedInfoDictionary() or bundle.infoDictionary()
 info['NSAppTransportSecurity'] = {'NSAllowsArbitraryLoads': Foundation.YES}
 info['NSRequiresAquaSystemAppearance'] = Foundation.NO  # Enable dark mode support for Mojave
 
-# Dynamic library required by BrowserView.pyobjc_method_signature()
-_objc_so = ctypes.cdll.LoadLibrary(_objc.__file__)
-
 # Fallbacks, in case these constants are not wrapped by PyObjC
 try:
     NSFullSizeContentViewWindowMask = AppKit.NSFullSizeContentViewWindowMask
@@ -190,8 +187,6 @@ class BrowserView:
             alert.setInformativeText_(str(message))
             alert.runModal()
 
-            if not handler.__block_signature__:
-                handler.__block_signature__ = BrowserView.pyobjc_method_signature(b'v@')
             handler()
 
         def webView_didReceiveAuthenticationChallenge_completionHandler_(
@@ -242,9 +237,6 @@ class BrowserView:
                 FileDialog.OPEN, '', param.allowsMultipleSelection(), '', file_filter, main_thread=True
             )
 
-            if not handler.__block_signature__:
-                handler.__block_signature__ = BrowserView.pyobjc_method_signature(b'v@@')
-
             if files:
                 urls = [Foundation.NSURL.fileURLWithPath_(i) for i in files]
                 handler(urls)
@@ -269,9 +261,6 @@ class BrowserView:
         ):
             # The event that might have triggered the navigation
             event = AppKit.NSApp.currentEvent()
-
-            if not handler.__block_signature__:
-                handler.__block_signature__ = BrowserView.pyobjc_method_signature(b'v@i')
 
             # Handle links with the download attribute set to recommend a file name
             if action.shouldPerformDownload() and webview_settings['ALLOW_DOWNLOADS']:
@@ -411,6 +400,24 @@ class BrowserView:
             self.file_dlg.setAllowedFileTypes_(self.filter[option][1])
 
     class WebKitHost(WebKit.WKWebView):
+        def interpretKeyEvents_(self, events):
+            # Override to prevent sound feedback while preserving keyboard functionality
+            # Temporarily disable beep sounds, then call the original implementation
+            original_beep = None
+            try:
+                # Store and replace the beep function
+                if hasattr(AppKit, 'NSBeep'):
+                    original_beep = AppKit.NSBeep
+                    AppKit.NSBeep = lambda: None
+
+                # Call the original implementation to preserve keyboard shortcuts
+                super(BrowserView.WebKitHost, self).interpretKeyEvents_(events)
+
+            finally:
+                # Restore the original beep function
+                if original_beep:
+                    AppKit.NSBeep = original_beep
+
         def performDragOperation_(self, sender):
             if sender.draggingSource() is None and _dnd_state['num_listeners'] > 0:
                 pboard = sender.draggingPasteboard()
@@ -527,7 +534,6 @@ class BrowserView:
                         return
 
             super(BrowserView.WebKitHost, self).keyDown_(event)
-
 
     def __init__(self, window):
         BrowserView.instances[window.uid] = self
@@ -1106,7 +1112,14 @@ class BrowserView:
                     # Actions must be registered before application start. Otherwise they are disabled.
                     # Menu handler is a workaround to register actions after application start
                     random_id = str(uuid.uuid4())[:6]
-                    action_id = item.function.__name__ + '.' + random_id
+                    # Handle functools.partial objects which don't have __name__ attribute
+                    if hasattr(item.function, '__name__'):
+                        func_name = item.function.__name__
+                    elif hasattr(item.function, 'func') and hasattr(item.function.func, '__name__'):
+                        func_name = item.function.func.__name__
+                    else:
+                        func_name = 'anonymous_function'
+                    action_id = func_name + '.' + random_id
                     menu_handler.register_action(action_id, item.function)
 
                     menu_item = AppKit.NSMenuItem.alloc().initWithTitle_action_keyEquivalent_(
@@ -1269,20 +1282,6 @@ class BrowserView:
         print_op = webview._printOperationWithPrintInfo_(info)
         print_op.runOperationModalForWindow_delegate_didRunSelector_contextInfo_(
             webview.window(), nil, nil, nil
-        )
-
-    @staticmethod
-    def pyobjc_method_signature(signature_str):
-        """
-        Return a PyObjCMethodSignature object for given signature string.
-
-        :param signature_str: A byte string containing the type encoding for the method signature
-        :return: A method signature object, assignable to attributes like __block_signature__
-        :rtype: <type objc._method_signature>
-        """
-        _objc_so.PyObjCMethodSignature_WithMetaData.restype = ctypes.py_object
-        return _objc_so.PyObjCMethodSignature_WithMetaData(
-            ctypes.create_string_buffer(signature_str), None, False
         )
 
     @staticmethod
