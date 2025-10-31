@@ -1,6 +1,7 @@
 import json
 from enum import Enum
 from typing import Any, Dict, Optional, Union
+
 from webview.util import css_to_camel, escape_string
 
 
@@ -19,21 +20,24 @@ class PropsDict:
 
         if type == DOMPropType.Style:
             converted_style = json.dumps({css_to_camel(key): value for key, value in props.items()})
-            self.__element._window.evaluate_js(f"""
+            self.__element._window.evaluate_js(
+                f"""
                 {self.__element._query_command};
                 var styles = JSON.parse('{escape_string(converted_style)}');
 
                 for (var key in styles) {{
                     element.style[key] = styles[key];
                 }}
-            """)
+            """
+            )
 
         elif type == DOMPropType.Attribute:
-            converted_attributes = json.dumps({
-                escape_string(key): escape_string(value) for key, value in props.items()
-            })
+            converted_attributes = json.dumps(
+                {escape_string(key): escape_string(value) for key, value in props.items()}
+            )
 
-            self.__element._window.evaluate_js(f"""
+            self.__element._window.evaluate_js(
+                f"""
                 {self.__element._query_command};
                 var attributes = JSON.parse('{converted_attributes}');
 
@@ -46,7 +50,8 @@ class PropsDict:
                         element.setAttribute(key, attributes[key]);
                     }}
                 }};
-            """)
+            """
+            )
 
     def __getitem__(self, key):
         data = self.__get_data()
@@ -127,7 +132,8 @@ class PropsDict:
             return self.__get_attributes()
 
     def __get_attributes(self) -> Dict[str, Any]:
-        return self.__element._window.evaluate_js(f"""
+        return self.__element._window.evaluate_js(
+            f"""
             {self.__element._query_command};
             var attributes = element.attributes;
             var result = {{}};
@@ -138,10 +144,12 @@ class PropsDict:
                 result[attributes[i].name] = attributes[i].value;
             }}
             result
-        """)
+        """
+        )
 
     def __set_attribute(self, props: Dict[str, Any]):
-        self.__element._window.evaluate_js(f"""
+        self.__element._window.evaluate_js(
+            f"""
             {self.__element._query_command};
             var values = JSON.parse('{escape_string(json.dumps(props))}');
 
@@ -153,10 +161,12 @@ class PropsDict:
                     element.setAttribute(key, value);
                 }}
             }}
-        """)
+        """
+        )
 
     def __get_style(self) -> Dict[str, Any]:
-        return self.__element._window.evaluate_js(f"""
+        return self.__element._window.evaluate_js(
+            f"""
             {self.__element._query_command};
             var styles = window.getComputedStyle(element);
             var computedStyles = {{}};
@@ -171,11 +181,13 @@ class PropsDict:
             }}
 
             computedStyles;
-        """)
+        """
+        )
 
     def __set_style(self, style: Dict[str, Any]):
         converted_style = json.dumps({css_to_camel(key): value for key, value in style.items()})
-        self.__element._window.evaluate_js(f"""
+        self.__element._window.evaluate_js(
+            f"""
             {self.__element._query_command};
             var styles = JSON.parse('{escape_string(converted_style)}');
 
@@ -183,4 +195,5 @@ class PropsDict:
                 var value = styles[key];
                 element.style[key] = value;
             }}
-        """)
+        """
+        )

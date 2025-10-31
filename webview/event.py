@@ -3,13 +3,12 @@ from __future__ import annotations
 import inspect
 import logging
 import threading
-from typing import Any, Callable, TYPE_CHECKING
+from typing import TYPE_CHECKING, Any, Callable
 
 from typing_extensions import Self
 
 if TYPE_CHECKING:
     from typing import type_check_only
-
 
 
 logger = logging.getLogger('pywebview')
@@ -38,12 +37,10 @@ class EventContainer:
     if TYPE_CHECKING:
 
         @type_check_only
-        def __getattr__(self, __name: str) -> Event:
-            ...
+        def __getattr__(self, __name: str) -> Event: ...
 
         @type_check_only
-        def __setattr__(self, __name: str, __value: Event) -> None:
-            ...
+        def __setattr__(self, __name: str, __value: Event) -> None: ...
 
 
 class Event:

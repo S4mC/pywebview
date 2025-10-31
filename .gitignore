@@ -30,4 +30,3 @@ docs/examples
 gradle*
 .pypirc
 .env
-.github

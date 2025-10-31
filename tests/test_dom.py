@@ -1,13 +1,17 @@
+from time import sleep
+
 import pytest
 
 import webview
-from time import sleep
+
 from .util import run_test
 
 
 @pytest.fixture
 def window():
-    return webview.create_window('DOM test', html='''
+    return webview.create_window(
+        'DOM test',
+        html="""
         <html>
             <body>
                 <div id="container">
@@ -21,7 +25,8 @@ def window():
                 </div>
             </body>
         </html>
-    ''')
+    """,
+    )
 
 
 def test_element(window):
@@ -55,8 +60,10 @@ def test_focus(window):
 def test_manipulation(window):
     run_test(webview, window, manipulation_test)
 
+
 def test_manipulation_modes(window):
     run_test(webview, window, manipulation_mode_test)
+
 
 def test_events(window):
     run_test(webview, window, events_test)
@@ -109,21 +116,36 @@ def classes_test(window):
 def attributes_test(window):
     child1 = window.dom.get_element('#child1')
 
-    assert dict(child1.attributes) == {'class': 'test', 'id': 'child1', 'data-id': 'blz', 'tabindex': '3'}
+    assert dict(child1.attributes) == {
+        'class': 'test',
+        'id': 'child1',
+        'data-id': 'blz',
+        'tabindex': '3',
+    }
 
     assert child1.attributes['class'] == 'test'
     assert set(child1.attributes.keys()) == {'class', 'id', 'data-id', 'tabindex'}
     assert set(child1.attributes.values()) == {'test', 'child1', 'blz', '3'}
-    assert set(child1.attributes.items()) == {('class', 'test'), ('id', 'child1'), ('data-id', 'blz'), ('tabindex', '3')}
+    assert set(child1.attributes.items()) == {
+        ('class', 'test'),
+        ('id', 'child1'),
+        ('data-id', 'blz'),
+        ('tabindex', '3'),
+    }
     assert child1.attributes.get('class') == 'test'
-    assert child1.attributes.get('class2') == None
-    assert child1.attributes['class2'] == None
+    assert child1.attributes.get('class2') is None
+    assert child1.attributes['class2'] is None
 
     del child1.attributes['class']
     assert dict(child1.attributes) == {'id': 'child1', 'data-id': 'blz', 'tabindex': '3'}
 
     child1.attributes['data-test'] = 'test2'
-    assert dict(child1.attributes) == {'id': 'child1', 'data-id': 'blz', 'tabindex': '3', 'data-test': 'test2'}
+    assert dict(child1.attributes) == {
+        'id': 'child1',
+        'data-id': 'blz',
+        'tabindex': '3',
+        'data-test': 'test2',
+    }
 
     child1.attributes = {'data-test': 'test3'}
     assert child1.attributes['data-test'] == 'test3'
@@ -149,30 +171,30 @@ def style_test(window):
 
 def visibility_test(window):
     child3 = window.dom.get_element('#child3')
-    assert child3.visible == False
+    assert not child3.visible
 
     child3.show()
-    assert child3.visible == True
+    assert child3.visible
 
     child3.hide()
-    assert child3.visible == False
+    assert not child3.visible
 
     child3.toggle()
-    assert child3.visible == True
+    assert child3.visible
 
     child3.toggle()
-    assert child3.visible == False
+    assert not child3.visible
 
 
 def focus_test(window):
     input = window.dom.get_element('#input')
-    assert input.focused == False
+    assert not input.focused
 
     input.focus()
-    assert input.focused == True
+    assert input.focused
 
     input.blur()
-    assert input.focused == False
+    assert not input.focused
 
 
 def traversal_test(window):
@@ -202,7 +224,9 @@ def manipulation_test(window):
     assert len(container.children) == 1
     assert container.children[0].id == 'child1'
 
-    child2 = window.dom.create_element('<div id="child2" class="child-class">CHILD</div>', container)
+    child2 = window.dom.create_element(
+        '<div id="child2" class="child-class">CHILD</div>', container
+    )
     assert len(container.children) == 2
     assert container.children[1].id == 'child2'
     assert child2.parent.id == 'container'
@@ -247,7 +271,7 @@ def manipulation_mode_test(window):
     assert container2.children[-1].id == 'child1'
 
     child2.move(container2, mode=webview.dom.ManipulationMode.Replace)
-    assert window.dom.get_element('#container2') == None
+    assert window.dom.get_element('#container2') is None
     assert child2.parent.tag == 'body'
 
 
@@ -262,61 +286,70 @@ def events_test(window):
     button.events.click += click_handler
 
     window.evaluate_js('document.getElementById("button").click()')
-    assert button_value == True
+    assert button_value
 
     button.events.click -= click_handler
     button_value = False
     window.evaluate_js('document.getElementById("button").click()')
     sleep(0.1)
-    assert button_value == False
-    assert window.evaluate_js('Object.keys(pywebview._eventHandlers).length === 0') == True
+    assert not button_value
+    assert window.evaluate_js('Object.keys(pywebview._eventHandlers).length === 0')
 
 
 def special_char_attributes_test(window):
     """Test attributes containing special characters like single quotes and backslashes"""
     child1 = window.dom.get_element('#child1')
-    
+
     # Test setting and getting attributes with double quotes (should work with JSON)
     child1.attributes['data-double-quote'] = 'value with "double quotes"'
     assert child1.attributes['data-double-quote'] == 'value with "double quotes"'
-    
+
     # Test setting and getting attributes with backslashes (JSON escapes these)
     child1.attributes['data-backslash'] = 'value with \\backslash'
     assert child1.attributes['data-backslash'] == 'value with \\backslash'
-    
+
     # Test setting and getting attributes with newlines and tabs
-    child1.attributes['data-whitespace'] = "value with\nnewline and\ttab"
-    assert child1.attributes['data-whitespace'] == "value with\nnewline and\ttab"
-    
+    child1.attributes['data-whitespace'] = 'value with\nnewline and\ttab'
+    assert child1.attributes['data-whitespace'] == 'value with\nnewline and\ttab'
+
     # Test setting and getting attributes with HTML entities
-    child1.attributes['data-html'] = "value with &lt;tags&gt; and &amp; symbols"
-    assert child1.attributes['data-html'] == "value with &lt;tags&gt; and &amp; symbols"
-    
+    child1.attributes['data-html'] = 'value with &lt;tags&gt; and &amp; symbols'
+    assert child1.attributes['data-html'] == 'value with &lt;tags&gt; and &amp; symbols'
+
     # Test setting and getting attributes with Unicode characters
-    child1.attributes['data-unicode'] = "value with unicode: ñáéíóú 中文 🚀"
-    assert child1.attributes['data-unicode'] == "value with unicode: ñáéíóú 中文 🚀"
-    
+    child1.attributes['data-unicode'] = 'value with unicode: ñáéíóú 中文 🚀'
+    assert child1.attributes['data-unicode'] == 'value with unicode: ñáéíóú 中文 🚀'
+
     # Test setting and getting attributes with forward slashes
-    child1.attributes['data-slashes'] = "value/with/forward/slashes"
-    assert child1.attributes['data-slashes'] == "value/with/forward/slashes"
-    
+    child1.attributes['data-slashes'] = 'value/with/forward/slashes'
+    assert child1.attributes['data-slashes'] == 'value/with/forward/slashes'
+
     # Test that all special character attributes are preserved
     special_attrs = {k: v for k, v in child1.attributes.items() if k.startswith('data-')}
     expected_attrs = {
         'data-id': 'blz',  # original attribute
         'data-double-quote': 'value with "double quotes"',
         'data-backslash': 'value with \\backslash',
-        'data-whitespace': "value with\nnewline and\ttab",
-        'data-html': "value with &lt;tags&gt; and &amp; symbols",
-        'data-unicode': "value with unicode: ñáéíóú 中文 🚀",
-        'data-slashes': "value/with/forward/slashes"
+        'data-whitespace': 'value with\nnewline and\ttab',
+        'data-html': 'value with &lt;tags&gt; and &amp; symbols',
+        'data-unicode': 'value with unicode: ñáéíóú 中文 🚀',
+        'data-slashes': 'value/with/forward/slashes',
     }
-    
+
     for key, expected_value in expected_attrs.items():
-        assert key in special_attrs, f"Attribute {key} not found"
-        assert special_attrs[key] == expected_value, f"Attribute {key} value mismatch: expected {expected_value}, got {special_attrs[key]}"
-    
+        assert key in special_attrs, f'Attribute {key} not found'
+        assert (
+            special_attrs[key] == expected_value
+        ), f'Attribute {key} value mismatch: expected {expected_value}, got {special_attrs[key]}'
+
     # Test clearing special character attributes
-    for key in ['data-double-quote', 'data-backslash', 'data-whitespace', 'data-html', 'data-unicode', 'data-slashes']:
+    for key in [
+        'data-double-quote',
+        'data-backslash',
+        'data-whitespace',
+        'data-html',
+        'data-unicode',
+        'data-slashes',
+    ]:
         del child1.attributes[key]
-        assert child1.attributes[key] == None
+        assert child1.attributes[key] is None
