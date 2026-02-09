@@ -973,7 +973,7 @@ class BrowserView:
                         except ImportError:
                             UTType = None  # Fallback if UTType is not available
 
-                        open_dlg.setAllowedContentTypes_([UTType.typeWithMIMEType_('image/jpg')])
+                        open_dlg.setAllowedContentTypes_([UTType.typeWithMIMEType_(file_filter[0])])
                     else:
                         open_dlg.setAllowedFileTypes_(file_filter[0][1])
 
