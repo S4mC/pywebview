@@ -332,4 +332,27 @@ window.pywebview = {
       }, delay);
     };
   },
+
+  dispatch_custom_event: function (eventName) {
+    if (typeof eventName !== 'string' || eventName.trim() === '') {
+      console.error('dispatch_custom_event: eventName must be a non-empty string');
+      return Promise.reject(new Error('eventName must be a non-empty string'));
+    }
+
+    if (!window.pywebview._returnValuesCallbacks['_dispatch_custom_event']) {
+      window.pywebview._returnValuesCallbacks['_dispatch_custom_event'] = {};
+    }
+
+    var __id = (Math.random() + "").substring(2);
+
+    var promise = new Promise(function(resolve, reject) {
+      window.pywebview._checkValue("_dispatch_custom_event", resolve, reject, __id);
+    });
+
+    var args = Array.prototype.slice.call(arguments, 1);
+
+    window.pywebview._jsApiCallback("_dispatch_custom_event", [eventName].concat(args), __id);
+
+    return promise;
+  },
 };

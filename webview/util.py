@@ -342,6 +342,49 @@ def js_bridge_call(
         special_key = '__pywebviewHaltUpdate__' + param
         delattr(window.state, special_key)
         return
+    
+    if func_name == '_dispatch_custom_event':
+        def _dispatch_call():
+            try:
+                event_name = param[0] if len(param) > 0 else None
+
+                if event_name:
+                    event_args = param[1:] if len(param) > 1 else []
+
+                    result = False
+                    if hasattr(window, 'events'):
+                        try:
+                            custom_event = getattr(window.events, event_name)
+                            result = custom_event(*event_args)
+                        except AttributeError:
+                            logger.warning(f'Event {event_name} not found in window.events')
+                            result = False
+                        except Exception as e:
+                            logger.exception(f'Error dispatching Python event {event_name}: {e}')
+                            result = False
+                    else:
+                        logger.error('Window has no events attribute')
+                        result = False
+                    
+                    result_json = json.dumps(result).replace('\\', '\\\\').replace("'", "\\'")
+                    retval = f"{{value: \'{result_json}\'}}"
+                else:
+                    logger.error('Event %s does not exist', event_name)
+                    error = {'message': 'Invalid event name', 'name': 'ValueError', 'stack': ''}
+                    result = json.dumps(error).replace('\\', '\\\\').replace("'", "\\'")
+                    retval = f"{{isError: true, value: \'{result}\'}}"
+
+            except Exception as e:
+                logger.error(f'Error dispatching custom event {event_name}: {e}')
+                error = {'message': str(e), 'name': type(e).__name__, 'stack': traceback.format_exc()}
+                result = json.dumps(error).replace('\\', '\\\\').replace("'", "\\'")
+                retval = f"{{isError: true, value: \'{result}\'}}"
+
+            window.evaluate_js(f'window.pywebview._returnValuesCallbacks["_dispatch_custom_event"]["{value_id}"]({retval})')
+
+        thread = Thread(target=_dispatch_call)
+        thread.start()
+        return
 
     func = window._functions.get(func_name) or get_nested_attribute(window._js_api, func_name)
 

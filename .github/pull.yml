@@ -1,0 +1,10 @@
+version: "1"
+rules:
+  - base: master
+    upstream: r0x0r:master
+    mergeMethod: merge        # no hardreset
+    mergeUnstable: false
+    conflictLabel: "merge-conflict"
+    conflictReviewers:
+      - S4mC
+label: ":arrow_heading_down: pull"

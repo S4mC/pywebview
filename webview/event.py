@@ -17,6 +17,23 @@ logger = logging.getLogger('pywebview')
 class EventContainer:
     _serializable = False
 
+    def __init__(self):
+        self._events: dict[str, Event] = {}
+        self._window = None
+
+    def __getattr__(self, name: str) -> Event:
+        if name not in self._events:
+            self._events[name] = Event(self._window, is_custom=True)
+        return self._events[name]
+
+    def __setattr__(self, name: str, value: Any) -> None:
+        if name.startswith('_'):
+            super().__setattr__(name, value)
+        else:
+            if not hasattr(self, '_events'):
+                super().__setattr__('_events', {})
+            self._events[name] = value
+
     if TYPE_CHECKING:
 
         @type_check_only
@@ -27,14 +44,17 @@ class EventContainer:
 
 
 class Event:
-    def __init__(self, window: Any, should_lock: bool = False) -> None:
+    def __init__(self, window, should_lock: bool = False) -> None:
         self._items: list[Callable[..., Any]] = []
         self._should_lock = should_lock
         self._event = threading.Event()
         self._window = window
+        self.return_values: set[Any] = set()
+        self._is_custom = is_custom
 
     def set(self, *args: Any, **kwargs: Any) -> bool:
         def execute():
+            self.return_values = set()
             for func in self._items:
                 try:
                     if len(inspect.signature(func).parameters.values()) == 0:
@@ -43,12 +63,12 @@ class Event:
                         value = func(self._window, *args, **kwargs)
                     else:
                         value = func(*args, **kwargs)
-                    return_values.append(value)
+                    return_values.add(value)
 
                 except Exception as e:
                     logger.exception(e)
 
-        return_values: list[Any] = []
+        return_values: set[Any] = set()
 
         if len(self._items):
             if self._should_lock:
@@ -57,10 +77,18 @@ class Event:
                 t = threading.Thread(target=execute)
                 t.start()
 
-        false_values = [v for v in return_values if v is False]
-        self._event.set()
+                if self._is_custom:
+                    t.join()
 
-        return len(false_values) != 0
+        if self._is_custom:
+            false_values = [v for v in self.return_values if v is False]
+            result = len(false_values) == 0
+        else:
+            false_values = [v for v in self.return_values if v is False]
+            result = len(false_values) != 0
+
+        self._event.set()
+        return result
 
     def is_set(self) -> bool:
         return self._event.is_set()
@@ -70,6 +98,12 @@ class Event:
 
     def clear(self) -> None:
         return self._event.clear()
+
+    def __call__(self, *args: Any, **kwargs: Any) -> bool:
+        """
+        Allows the event to be called as a function to manually fire the event.
+        """
+        return self.set(*args, **kwargs)
 
     def __add__(self, item: Callable[..., Any]) -> Self:
         self._items.append(item)
